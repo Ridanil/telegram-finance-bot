@@ -17,11 +17,9 @@ async def send_welcome(message: types.Message):
 
 @dp.message_handler()
 async def pick_all_msg(message: types.Message):
-
-    answer_msg = processing.parsing(message.text)
-    await message.answer(f"{answer_msg.category_text}")
-
-
+	expense = processing.add_expens(message.text)
+	answer_message = f"Добавлены траты {expense.amount} на {expense.category_name}"
+	await message.answer(answer_message)
 
 
 
