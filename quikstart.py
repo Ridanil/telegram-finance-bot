@@ -1,4 +1,5 @@
 import os.path
+import dateandtime
 
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -23,12 +24,21 @@ service = build('sheets', 'v4', credentials=credentials).spreadsheets().values()
 # data_from_sheet = result.get('values', [])
 # print(data_from_sheet)
 
-range_ = "Лист1!A3:B4"
-array = {"values": [[5, 5], [5, 5]]}
-response = service.update(spreadsheetId=SPREADSHEET_ID,
-                            range=range_,
+#range_gs = "Январь!A2:D5"
+#array = {"values": [[7, None, 7, 7]]}
+# response = service.update(spreadsheetId=SPREADSHEET_ID,
+#                             range=range_gs,
+#                             valueInputOption="USER_ENTERED",
+#                             body=array)
+
+def add_into_gs(amount, category_text):
+        array = {"values": [dateandtime.array_prepare(amount, category_text)]}
+        range_gs = dateandtime.range_prepare()
+        response = service.update(spreadsheetId=SPREADSHEET_ID,
+                            range=range_gs,
                             valueInputOption="USER_ENTERED",
-                            body=array).execute()
+                            body=array)
+        return response.execute()
 
 
 
