@@ -12,11 +12,13 @@ def range_prepare():
 	return range_gs
 
 def array_prepare(amount, category_text):
-	#parsed_msg = processing.add_expens(raw_message)
+	"Возвращает шаблон для записи суммы расхода в соответствующую ячейку"
+	previous_amount = quikstart.previous_amount_from_gs(category_text)
 	amnt = amount
 	categ_txt = category_text
-	categ_dict = {"еда":[amnt, None, None, None],
-				"бензин":[None, None, amnt, None],
-				"разное":[None, None, None, amnt]}
+	categ_dict = {"еда":[amnt+previous_amount, None, None, None],
+				"бензин":[None, amnt+previous_amount, None, None],
+				"б/х":[None, None, amnt+previous_amount, None],
+				"разное":[None, None, None, amnt+previous_amount]}
 	array = categ_dict[categ_txt]
 	return array
