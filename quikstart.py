@@ -17,19 +17,21 @@ RANGE_NAME = 'Лист1'
 service = build('sheets', 'v4', credentials=credentials).spreadsheets().values()
 
 
-# result = sheet.get(spreadsheetId=SPREADSHEET_ID,
-#                     range=RANGE_NAME,
-#                     majorDimension='COLUMNS').execute()
-#
-# data_from_sheet = result.get('values', [])
-# print(data_from_sheet)
-
-#range_gs = "Январь!A2:D5"
-#array = {"values": [[7, None, 7, 7]]}
-# response = service.update(spreadsheetId=SPREADSHEET_ID,
-#                             range=range_gs,
-#                             valueInputOption="USER_ENTERED",
-#                             body=array)
+def previous_amount_from_gs(category_text):
+        range_sample = dateandtime.range_prepare()
+        result = service.get(spreadsheetId=SPREADSHEET_ID,
+                            range=range_sample,
+                            majorDimension='ROWS').execute()
+        try:
+                f=result["values"][0]
+        else:
+                f=result.__setitem__("values", ['','','',''])
+        dict_amount_from_gs = {"еда":f[0],"бензин":f[1],"б/х":f[2],"разное":f[3]}
+        if dict_amount_from_gs[category_text]=='':
+                frd = 0
+        else:
+                frd = (int(dict_amount_from_gs[category_text]))
+        return frd
 
 def add_into_gs(amount, category_text):
         array = {"values": [dateandtime.array_prepare(amount, category_text)]}
