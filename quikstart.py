@@ -26,7 +26,7 @@ def previous_amount_from_gs(category_text):
         data_for_new_day()
     f = result.execute()["values"][0]
     dict_amount_from_gs = {"еда": f[0], "кафе": f[1], "алкоголь": f[2],
-                           "сладости": f[3], "бензин": f[4], "бх": f[5],
+                           "сладкое": f[3], "бензин": f[4], "бытовая химия": f[5],
                            "разное": f[6]}
     frd = (int(dict_amount_from_gs[category_text]))
     return frd

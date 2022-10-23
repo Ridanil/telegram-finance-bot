@@ -24,9 +24,9 @@ def array_prepare(amount, category_text):
     categ_dict = {"еда": [amnt + previous_amount, None, None, None, None, None, None],
                   "кафе": [None, amnt + previous_amount, None, None, None, None, None],
                   "алкоголь": [None, None, amnt + previous_amount, None, None, None, None],
-                  "сладости": [None, None, None, amnt + previous_amount, None, None, None],
+                  "сладкое": [None, None, None, amnt + previous_amount, None, None, None],
                   "бензин": [None, None, None, None, amnt + previous_amount, None, None],
-                  "бх": [None, None, None, None, None, amnt + previous_amount, None],
+                  "бытовая химия": [None, None, None, None, None, amnt + previous_amount, None],
                   "разное": [None, None, None, None, None, None, amnt + previous_amount]}
     array = categ_dict[categ_txt]
     return array
