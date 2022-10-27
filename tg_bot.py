@@ -1,6 +1,14 @@
 import logging
-import processing
 from aiogram import Bot, Dispatcher, executor, types
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters import Text
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+
+import exceptions
+import processing
+import categories
+from keyboards import kb_client
 
 logging.basicConfig(level=logging.INFO)
 
@@ -9,18 +17,44 @@ ACCESS_ID = ("736489732")
 
 
 bot = Bot(token = API_TOKEN)
-dp = Dispatcher(bot)
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
 
-@dp.message_handler(commands = ['start', 'help'])
-async def send_welcome(message: types.Message):
-    await message.reply("Hi!\nI'm EchoBot!\nPowered by aiogram.")
+
+class Expenses_State(StatesGroup):
+	waiting_for_category = State()
+
 
 @dp.message_handler()
-async def pick_all_msg(message: types.Message):
-	expense = processing.add_expens(message.text)
-	answer_message = f"Добавлены траты {expense.amount} на {expense.category_name}"
-	await message.answer(answer_message)
+async def pick_all_msg(message: types.Message, state: FSMContext):
+    try:
+        pre_expense = processing.parsing(message.text)
+        async with state.proxy() as data:
+            data['comment'] = pre_expense.message_text
+            data['amount'] = pre_expense.amount
+    except exceptions.NotCorrectMessage as e:
+        await message.answer(str(e))
+        return
+    try:
+        expense_1 = categories.get_category(pre_expense.message_text)
+        async with state.proxy() as data:
+            data['category'] = expense_1
+        answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}"
+        await message.answer(answer_message)
+    except exceptions.NoSuchCategory as e:
+        await message.answer(str(e), reply_markup=kb_client)        
+        await state.set_state(Expenses_State.waiting_for_category.state)
+    
 
+
+@dp.message_handler(Text(equals="разное", ignore_case=True), state=Expenses_State.waiting_for_category)
+async def category_choice(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['category'] = message.text
+    categories.update_categories_json(data['comment'], data['category'])
+    answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}"
+    await message.answer(answer_message)
+    await state.finish()
 
 
 if __name__ == '__main__':

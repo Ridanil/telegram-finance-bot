@@ -2,10 +2,11 @@ from typing import NamedTuple, Optional, List
 import datetime
 import pytz
 import re
-import quikstart
 
+import quikstart
 import db
 import categories
+import exceptions
 
 
 class Message(NamedTuple):
@@ -20,7 +21,7 @@ class Expense(NamedTuple):
     category_name: str
 
 def add_expens(raw_message: str):
-    parsed_message = parsing(raw_message)
+    parsed_message = parsing(raw_message) #TODO must be change. Will be get data from another place
     category = categories.get_category(parsed_message.message_text)
     add_in_to_gs = quikstart.add_into_gs(
         parsed_message.amount,
@@ -37,9 +38,14 @@ def add_expens(raw_message: str):
 
 def parsing(raw_message: str) -> Message:
     parsed_msg = re.match(r"([\d ]+) (.*)", raw_message)
+    if not parsed_msg or not parsed_msg.group(0) \
+        or not parsed_msg.group(1) or not parsed_msg.group(2):
+        raise exceptions.NotCorrectMessage("Неверно введен расход. Надо вот так:"
+                                            " Сначала сумма потом расход")
     amount = int(parsed_msg.group(1))
     message_text = str(parsed_msg.group(2)).strip()
     return Message(amount=amount, message_text=message_text)
+    
 
 def _get_now_datetime() -> datetime.datetime:
     """Возвращает сегодняшний datetime с учетом временной зоны"""
