@@ -16,3 +16,10 @@ def insert(table: str, column_values: Dict):
 		f"VALUES ({placeholders})",
 		values)
 	conn.commit()
+
+
+cur.execute("SELECT amount, category_name, raw_text FROM expenses WHERE category_name = 'еда'")
+asd = cur.fetchall()
+conn.commit()
+for i in asd:
+    print(i)
