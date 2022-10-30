@@ -27,6 +27,13 @@ class Expenses_State(StatesGroup):
 	waiting_for_category = State()
 
 
+@dp.message_handler(commands=['today'])
+async def today_statistics(message: types.Message):
+    """Отправляет сегодняшнюю статистику трат"""
+    answer_message = processing.get_today_statistics()
+    await message.answer(answer_message)
+
+
 @dp.message_handler()
 async def pick_all_msg(message: types.Message, state: FSMContext):
     try:
@@ -59,6 +66,7 @@ async def category_choice(message: types.Message, state: FSMContext):
     answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}"
     await message.answer(answer_message)
     await state.finish()
+
 
 
 if __name__ == '__main__':
