@@ -17,7 +17,17 @@ def insert(table: str, column_values: Dict):
 		values)
 	conn.commit()
 
+def get_budget():
+	cursor.execute(f"SELECT sum FROM budget")
+	budget = cursor.fetchone()
+	conn.commit()
+	return  budget[0]
+
+def insert_budget(values: int):
+	cursor.execute(f"UPDATE budget SET sum = {values}")
+	conn.commit()
 
 def get_cursor():
 	return cursor
 
+get_budget()

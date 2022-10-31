@@ -8,6 +8,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import exceptions
 import processing
 import categories
+import db
 from keyboards import kb_client
 
 logging.basicConfig(level=logging.INFO)
@@ -24,7 +25,17 @@ list_of_category = categories.get_list_of_category()
 
 
 class Expenses_State(StatesGroup):
-	waiting_for_category = State()
+    waiting_for_category = State()
+
+class Budget_State(StatesGroup):
+    waiting_for_budget = State()
+
+@dp.message_handler(lambda message: message.text.startswith("+"))
+async def pick_message_income(message: types.Message):
+    pre_income = processing.parsing(message.text)
+    processing.add_income(pre_income.amount, pre_income.message_text)
+    await message.answer(f"Добавлено {pre_income.amount} {pre_income.message_text} it")
+
 
 
 @dp.message_handler(commands=['today'])
@@ -32,6 +43,21 @@ async def today_statistics(message: types.Message):
     """Отправляет сегодняшнюю статистику трат"""
     answer_message = processing.get_today_statistics()
     await message.answer(answer_message)
+
+
+@dp.message_handler(commands="add_budget")
+async def add_budget(message: types.Message, state: FSMContext):
+    await message.answer("Установите бюджет")        
+    await state.set_state(Budget_State.waiting_for_budget.state)   
+
+@dp.message_handler(state=Budget_State.waiting_for_budget.state)
+async def set_budget(message: types.Message, state: FSMContext):
+    async with state.proxy() as budget_data:
+        budget_data['budget'] = message.text
+    db.insert_budget(budget_data['budget'])
+    answer_message = f"Добавлен бюджет {budget_data['budget']} руб."
+    await message.answer(answer_message)
+    await state.finish()
 
 
 @dp.message_handler()
@@ -49,13 +75,11 @@ async def pick_all_msg(message: types.Message, state: FSMContext):
         async with state.proxy() as data:
             data['category'] = expense_1
         processing.add_expense(data['amount'], data['category'], data['comment'])
-        answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}"
+        answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}. Осталось {db.get_budget()}"
         await message.answer(answer_message)
     except exceptions.NoSuchCategory as e:
         await message.answer(str(e), reply_markup=kb_client)        
-        await state.set_state(Expenses_State.waiting_for_category.state)
-    
-
+        await state.set_state(Expenses_State.waiting_for_category.state)  
 
 @dp.message_handler(Text(equals=list_of_category, ignore_case=True), state=Expenses_State.waiting_for_category)
 async def category_choice(message: types.Message, state: FSMContext):

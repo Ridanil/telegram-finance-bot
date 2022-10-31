@@ -20,6 +20,7 @@ class Expense(NamedTuple):
     amount: int
     category_name: str
 
+
 def add_expense(amount: int, category: str, expense: str):
     add_in_to_gs = quikstart.add_into_gs(amount, category)
     insert_in_db = db.insert("expenses", {
@@ -28,7 +29,19 @@ def add_expense(amount: int, category: str, expense: str):
         "category_name": category,
         "raw_text": expense
         })
+    db.insert_budget(db.get_budget() - amount)
     return Expense(id=None, amount=amount, category_name=category) # TODO для чего она это возвращает???
+
+
+def add_income(amount: int, message_text: str):
+    """Добавляет новый приход(ЗП, пенсия и т.д)"""
+    #add_in_to_gs = quikstart.add_into_gs(amount, category)
+    insert_in_db = db.insert("income", {
+        "create_date": _get_now_formated_datetime(),
+        "amount": amount,
+        "raw_text": message_text
+        })
+    pass
 
 
 def parsing(raw_message: str) -> Message:
@@ -36,7 +49,7 @@ def parsing(raw_message: str) -> Message:
     if not parsed_msg or not parsed_msg.group(0) \
         or not parsed_msg.group(1) or not parsed_msg.group(2):
         raise exceptions.NotCorrectMessage("Неверно введен расход. Надо вот так:"
-                                            " Сначала сумма потом расход")
+                                            " Сначала цифры потом буквы")
     amount = int(parsed_msg.group(1))
     message_text = str(parsed_msg.group(2)).strip()
     return Message(amount=amount, message_text=message_text)
