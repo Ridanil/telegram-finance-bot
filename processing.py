@@ -22,14 +22,14 @@ class Expense(NamedTuple):
 
 
 def add_expense(amount: int, category: str, expense: str):
-    add_in_to_gs = quikstart.add_into_gs(amount, category)
+    # add_in_to_gs = quikstart.add_into_gs(amount, category) #TODO: настроить range_prepare  для добавления нового месяца  
     insert_in_db = db.insert("expenses", {
         "create_date": _get_now_formated_datetime(),
         "amount": amount,
         "category_name": category,
         "raw_text": expense
         })
-    db.insert_budget(db.get_budget() - amount)
+    db.update_budget(db.get_budget() - amount)
     return Expense(id=None, amount=amount, category_name=category) # TODO для чего она это возвращает???
 
 
@@ -41,11 +41,12 @@ def add_income(amount: int, message_text: str):
         "amount": amount,
         "raw_text": message_text
         })
+    db.update_budget(db.get_budget() + amount)
     pass
 
 
 def parsing(raw_message: str) -> Message:
-    parsed_msg = re.match(r"([\d ]+) (.*)", raw_message)
+    parsed_msg = re.match(r"\A\+?(\d+)(.+)", raw_message)
     if not parsed_msg or not parsed_msg.group(0) \
         or not parsed_msg.group(1) or not parsed_msg.group(2):
         raise exceptions.NotCorrectMessage("Неверно введен расход. Надо вот так:"
@@ -64,17 +65,27 @@ def get_today_statistics() -> str:
     if not result[0]:
         return "Сегодня ещё нет расходов"
     all_today_expenses = result[0]
-    # cursor.execute("select sum(amount) "
-    #                "from expense where date(created)=date('now', 'localtime') "
-    #                "and category_codename in (select codename "
-    #                "from category where is_base_expense=true)")
-    # result = cursor.fetchone()
-    # base_today_expenses = result[0] if result[0] else 0
     return (f"Расходы сегодня:\n"
             f"всего — {all_today_expenses} руб.\n")
-            # f"базовые — {base_today_expenses} руб. из {_get_budget_limit()} руб.\n\n"
-            # f"За текущий месяц: /month")
     
+
+def get_month_statistic(category: str) -> str:
+    """Возвращает строкой статистику расходов за месяц"""
+    now = _get_now_datetime()
+    first_day_of_month = f'{now.year:04d}-{now.month:02d}-01'
+    cursor = db.get_cursor()
+    cursor.execute(f"SELECT sum(amount) FROM expenses WHERE date(create_date) >= '{first_day_of_month}'"
+                    f"AND (category_name LIKE '{category}')")
+    result = cursor.fetchone()
+    if not result[0]:
+        return "В этом месяце ещё нет расходов"
+    all_month_expenses = result[0]
+    cursor.execute(f"SELECT sum(amount) FROM expenses WHERE date(create_date) >= '{first_day_of_month}'"
+                    f"AND (category_name LIKE '{category}')")
+    result = cursor.fetchone()
+    return (f"Расходы в текущем месяце: \n "
+        f"{category} — {all_month_expenses} руб.")
+
 
 def _get_now_datetime() -> datetime.datetime:
     """Возвращает сегодняшний datetime с учетом временной зоны"""
@@ -86,3 +97,4 @@ def _get_now_datetime() -> datetime.datetime:
 def _get_now_formated_datetime() -> str:
     """Возвращает сегодняшнюю дату время строкой для БД"""
     return _get_now_datetime().strftime("%Y-%m-%d %H:%M:%S")
+

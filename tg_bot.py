@@ -9,7 +9,7 @@ import exceptions
 import processing
 import categories
 import db
-from keyboards import kb_client
+from keyboards import kb_client, kb_client_statistic
 
 logging.basicConfig(level=logging.INFO)
 
@@ -30,6 +30,9 @@ class Expenses_State(StatesGroup):
 class Budget_State(StatesGroup):
     waiting_for_budget = State()
 
+class Statistic_State(StatesGroup):
+    wait_category_statistic = State()
+
 @dp.message_handler(lambda message: message.text.startswith("+"))
 async def pick_message_income(message: types.Message):
     pre_income = processing.parsing(message.text)
@@ -45,6 +48,13 @@ async def today_statistics(message: types.Message):
     await message.answer(answer_message)
 
 
+@dp.message_handler(commands=['budget'])
+async def budget_viewing(message: types.Message):
+    """Отправляет состояние бюджета"""
+    answer_message = db.get_budget()
+    await message.answer(answer_message)
+
+
 @dp.message_handler(commands="add_budget")
 async def add_budget(message: types.Message, state: FSMContext):
     await message.answer("Установите бюджет")        
@@ -54,9 +64,22 @@ async def add_budget(message: types.Message, state: FSMContext):
 async def set_budget(message: types.Message, state: FSMContext):
     async with state.proxy() as budget_data:
         budget_data['budget'] = message.text
-    db.insert_budget(budget_data['budget'])
+    db.update_budget(budget_data['budget'])
     answer_message = f"Добавлен бюджет {budget_data['budget']} руб."
     await message.answer(answer_message)
+    await state.finish()
+
+@dp.message_handler(commands="month")
+async def month_statistic(message: types.Message, state: FSMContext):
+    await message.answer("Какую категорию посмотрим?", reply_markup=kb_client_statistic)      
+    await state.set_state(Statistic_State.wait_category_statistic.state)   
+
+@dp.message_handler(state=Statistic_State.wait_category_statistic.state)
+async def month_statistics(message: types.Message, state: FSMContext):
+    async with state.proxy() as category:
+        category['category'] = message.text
+    month_statistic = processing.get_month_statistic(category['category'])
+    await message.answer(month_statistic)
     await state.finish()
 
 
@@ -75,7 +98,7 @@ async def pick_all_msg(message: types.Message, state: FSMContext):
         async with state.proxy() as data:
             data['category'] = expense_1
         processing.add_expense(data['amount'], data['category'], data['comment'])
-        answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}. Осталось {db.get_budget()}"
+        answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}.\n Осталось {db.get_budget()}"
         await message.answer(answer_message)
     except exceptions.NoSuchCategory as e:
         await message.answer(str(e), reply_markup=kb_client)        
@@ -87,7 +110,7 @@ async def category_choice(message: types.Message, state: FSMContext):
         data['category'] = message.text
     categories.update_categories_json(data['comment'], data['category'])
     processing.add_expense(data['amount'], data['category'], data['comment'])
-    answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}"
+    answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}. \n Осталось {db.get_budget()}"
     await message.answer(answer_message)
     await state.finish()
 

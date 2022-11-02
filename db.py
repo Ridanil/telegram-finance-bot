@@ -23,11 +23,10 @@ def get_budget():
 	conn.commit()
 	return  budget[0]
 
-def insert_budget(values: int):
+def update_budget(values: int):
 	cursor.execute(f"UPDATE budget SET sum = {values}")
 	conn.commit()
 
 def get_cursor():
 	return cursor
 
-get_budget()
