@@ -23,6 +23,14 @@ def get_budget():
 	conn.commit()
 	return  budget[0]
 
+def get_averege(today, first_day_of_month, category):
+	cursor.execute("""SELECT sum(amount)/? FROM expenses WHERE date(create_date) >= ?
+                        AND (category_name LIKE ?)""",(today, first_day_of_month, category))
+	avg = cursor.fetchone()
+	conn.commit()
+	return avg[0]
+
+
 def update_budget(values: int):
 	cursor.execute(f"UPDATE budget SET sum = {values}")
 	conn.commit()
@@ -30,3 +38,6 @@ def update_budget(values: int):
 def get_cursor():
 	return cursor
 
+month_statistic_query= """SELECT sum(amount) FROM expenses
+	                    WHERE date(create_date) >= ?
+                        AND (category_name LIKE ?)"""
