@@ -16,7 +16,7 @@ def get_category(text_for_prepare):
     return result
 
 
-def update_categories_json(text_for_prepare, ask_category): #TODO what it must return? Maybe "PASS"?
+def update_categories_json(text_for_prepare, ask_category): # TODO what it must return? Maybe "PASS"?
     """Если на основании нового расхода не удалось определить категорию,
     она вводится c помощью кнопки а расход добавляется в алиасы"""    
     try:

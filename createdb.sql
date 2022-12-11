@@ -16,5 +16,7 @@ create table if not exists expenses(
 
 
 create table if not exists budget(
-    sum integer
+    sumary integer
 );
+
+insert into budget(sumary) values (500);
