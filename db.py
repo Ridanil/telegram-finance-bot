@@ -3,7 +3,7 @@ from typing import Dict
 
 import sqlite3
 
-conn = sqlite3.connect("/home/db/createdb.db")
+conn = sqlite3.connect("db/createdb.db")
 cursor = conn.cursor()
 
 
@@ -43,6 +43,19 @@ def get_cursor():
 	return cursor
 
 
+def delete(table: str, row_id: int) -> None:
+	row_id = int(row_id)
+	cursor.execute(f"delete from {table} where id={row_id}")
+	conn.commit()
+
+
+def change(table: str, row_id: int, new_value: int) -> None:
+	row_id = int(row_id)
+	new_value = int(new_value)
+	cursor.execute(f"UPDATE {table} SET amount = {new_value} where id={row_id}")
+	conn.commit()
+
+
 month_statistic_query = """SELECT sum(amount) FROM expenses
 						WHERE date(create_date) >= ?
 						AND (category_name LIKE ?)"""
@@ -50,3 +63,9 @@ month_statistic_query = """SELECT sum(amount) FROM expenses
 
 month_earn_query = """SELECT amount, raw_text FROM income
 						WHERE date(create_date) >= ?"""
+
+
+last_expenses_query = """SELECT id, amount, raw_text FROM expenses
+						ORDER BY create_date DESC limit 10"""
+
+amount_and_category_query = """SELECT amount, category_name FROM expenses WHERE id = ?"""

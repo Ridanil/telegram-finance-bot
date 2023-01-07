@@ -39,7 +39,7 @@ def previous_amount_from_gs(category_text):
     return frd
 
 
-def add_into_gs(amount, category_text):
+def add_into_gs(amount: int, category_text: str):
     array = {"values": [dateandtime.array_prepare(amount, category_text)]}
     range_gs = dateandtime.range_prepare()
     response = service.spreadsheets().values().update(spreadsheetId=SPREADSHEET_ID,

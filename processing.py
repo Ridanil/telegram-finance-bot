@@ -12,12 +12,14 @@ class Message(NamedTuple):
     "Распаршенное сообщение"
     amount: int
     message_text: str
+    date: Optional[str]
 
 class Expense(NamedTuple):
     "Структура расхода"
     id: Optional[int]
     amount: int
-    category_name: str
+    category_name: Optional[str]
+    raw_text: Optional[str]
 
 
 class Earn(NamedTuple):
@@ -26,16 +28,19 @@ class Earn(NamedTuple):
     category_name: str
 
 
-def add_expense(amount: int, category: str, expense: str):
-    quikstart.add_into_gs(amount, category)
+cursor = db.get_cursor()
+
+
+def add_expense(amount: int, category: str, expense: str, date):
+    # quikstart.add_into_gs(amount, category)
     db.insert("expenses", {
-        "create_date": _get_now_formated_datetime(),
+        "create_date": date,
         "amount": amount,
         "category_name": category,
         "raw_text": expense
         })
     db.update_budget(db.get_budget() - amount)
-    return Expense(id=None, amount=amount, category_name=category)
+    return Expense(id=None, amount=amount, category_name=category, raw_text=None)
 
 
 def add_income(amount: int, message_text: str):
@@ -52,18 +57,23 @@ def add_income(amount: int, message_text: str):
 
 def parsing(raw_message: str) -> Message:
     """Парсит входящее сообщение"""
-    parsed_msg = re.match(r"\A\+?(\d+)(\D+)", raw_message)
+    parsed_msg = re.match(r"\A\+?(\d+)(\D+)(\d{1,2}-\d{1,2})?", raw_message)
     if not parsed_msg or not parsed_msg.group(0) \
         or not parsed_msg.group(1) or not parsed_msg.group(2):
         raise exceptions.NotCorrectMessage("Неверно сообщение. Сначала цифры-(сколько) потом буквы-(на что)")
     amount = int(parsed_msg.group(1))
     message_text = str(parsed_msg.group(2)).strip()
-    return Message(amount=amount, message_text=message_text)
+    if parsed_msg.group(3):
+        date = (str(_get_now_datetime().year)+"-" +
+                str(parsed_msg.group(3)) + " " +
+                _get_now_datetime().strftime("%H:%M:%S"))
+    else:
+        date = _get_now_datetime().strftime("%Y-%m-%d %H:%M:%S")
+    return Message(amount=amount, message_text=message_text, date=date)
 
 
 def get_today_statistics() -> str:
     """Возвращает строкой статистику расходов за сегодня"""
-    cursor = db.get_cursor()
     cursor.execute("select sum(amount)"
                    "from expenses where date(create_date)=date('now', 'localtime')")
     result = cursor.fetchone()
@@ -79,7 +89,6 @@ def get_month_statistic(category: str) -> str:
     now = _get_now_datetime()
     today = int(f'{now.day:02d}')
     first_day_of_month = f'{now.year:04d}-{now.month:02d}-01'
-    cursor = db.get_cursor()
     cursor.execute(db.month_statistic_query, (first_day_of_month, category))
     result = cursor.fetchone()
     if not result[0]:
@@ -94,12 +103,34 @@ def get_earn_statistic(): #TODO сделать коректный текст в 
     """Возвращает статистику прхода за месяц"""
     now = _get_now_datetime()
     first_day_of_month = f'{now.year:04d}-{now.month:02d}-01'
-    cursor = db.get_cursor()
     cursor.execute(db.month_earn_query, (first_day_of_month,))
     result = cursor.fetchall()
     earn = [Earn(amount=res[0], category_name=res[1]) for res in result]
     return earn
 
+
+def return_last_expenses():
+    """Возврашает шесть последних записей"""
+    cursor.execute(db.last_expenses_query)
+    rows = cursor.fetchall()
+    last_expenses = [Expense(id=row[0], amount=row[1], raw_text=row[2], category_name=None) for row in rows]
+    return last_expenses
+
+
+def delete_expense(row_id: int) -> None:
+    """Удаляет сообщение по его идентификатору"""
+    cursor.execute(db.amount_and_category_query, (row_id,))
+    rows = cursor.fetchone()
+    quikstart.add_into_gs(-abs(int(rows[0])), rows[1])
+    db.delete("expenses", row_id)
+
+
+def change_expense(row_id: int, new_value: int) -> None:
+    """Изменяет запись расхода по его идентификатору"""
+    cursor.execute(db.amount_and_category_query, (row_id,))
+    rows = cursor.fetchone()
+    quikstart.add_into_gs(new_value-rows[0], rows[1])
+    db.change("expenses", row_id, new_value)
 
 def _get_now_datetime() -> datetime.datetime:
     """Возвращает сегодняшний datetime с учетом временной зоны"""
@@ -108,7 +139,10 @@ def _get_now_datetime() -> datetime.datetime:
     return now
 
 
-def _get_now_formated_datetime() -> str:
+def _get_now_formated_datetime(now_datetime=_get_now_datetime()):
     """Возвращает сегодняшнюю дату время строкой для БД"""
-    return _get_now_datetime().strftime("%Y-%m-%d %H:%M:%S")
+    if type(now_datetime) == str:
+        return now_datetime
+    else:
+        return now_datetime.strftime("%Y-%m-%d %H:%M:%S")
 

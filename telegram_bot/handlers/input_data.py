@@ -37,6 +37,7 @@ async def pick_all_msg(message: types.Message, state: FSMContext):
         async with state.proxy() as data:
             data['comment'] = pre_expense.message_text
             data['amount'] = pre_expense.amount
+            data['date'] = pre_expense.date
     except exceptions.NotCorrectMessage as e:
         await message.answer(str(e))
         return
@@ -44,7 +45,7 @@ async def pick_all_msg(message: types.Message, state: FSMContext):
         expense_1 = categories.get_category(pre_expense.message_text)
         async with state.proxy() as data:
             data['category'] = expense_1
-        processing.add_expense(data['amount'], data['category'], data['comment'])
+        processing.add_expense(data['amount'], data['category'], data['comment'], data['date'])
         answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}.\n Осталось {db.get_budget()}"
         await message.answer(answer_message)
     except exceptions.NoSuchCategory as e:
@@ -57,7 +58,7 @@ async def category_choice(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['category'] = message.text
     categories.update_categories_json(data['comment'], data['category'])
-    processing.add_expense(data['amount'], data['category'], data['comment'])
+    processing.add_expense(data['amount'], data['category'], data['comment'], data['date'])
     answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}. \n Осталось {db.get_budget()}"
     await message.answer(answer_message)
     await state.finish()
