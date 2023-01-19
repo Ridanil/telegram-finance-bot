@@ -68,4 +68,4 @@ month_earn_query = """SELECT amount, raw_text FROM income
 last_expenses_query = """SELECT id, amount, raw_text FROM expenses
 						ORDER BY create_date DESC limit 10"""
 
-amount_and_category_query = """SELECT amount, category_name FROM expenses WHERE id = ?"""
+amount_and_category_query = """SELECT amount, category_name, create_date FROM expenses WHERE id = ?"""

@@ -31,10 +31,10 @@ class Earn(NamedTuple):
 cursor = db.get_cursor()
 
 
-def add_expense(amount: int, category: str, expense: str, date):
-    # quikstart.add_into_gs(amount, category)
+def add_expense(amount: int, category: str, expense: str, date: str):
+    quikstart.add_into_gs(amount, category, date)
     db.insert("expenses", {
-        "create_date": date,
+        "create_date": _get_now_formated_datetime(date),
         "amount": amount,
         "category_name": category,
         "raw_text": expense
@@ -64,11 +64,9 @@ def parsing(raw_message: str) -> Message:
     amount = int(parsed_msg.group(1))
     message_text = str(parsed_msg.group(2)).strip()
     if parsed_msg.group(3):
-        date = (str(_get_now_datetime().year)+"-" +
-                str(parsed_msg.group(3)) + " " +
-                _get_now_datetime().strftime("%H:%M:%S"))
+        date = str(parsed_msg.group(3))
     else:
-        date = _get_now_datetime().strftime("%Y-%m-%d %H:%M:%S")
+        date = None
     return Message(amount=amount, message_text=message_text, date=date)
 
 
@@ -110,10 +108,11 @@ def get_earn_statistic(): #TODO сделать коректный текст в 
 
 
 def return_last_expenses():
-    """Возврашает шесть последних записей"""
+    """Возврашает 10 последних записей"""
     cursor.execute(db.last_expenses_query)
     rows = cursor.fetchall()
-    last_expenses = [Expense(id=row[0], amount=row[1], raw_text=row[2], category_name=None) for row in rows]
+    last_expenses = [Expense(id=row[0], amount=row[1],
+                             raw_text=row[2], category_name=None) for row in rows]
     return last_expenses
 
 
@@ -121,7 +120,8 @@ def delete_expense(row_id: int) -> None:
     """Удаляет сообщение по его идентификатору"""
     cursor.execute(db.amount_and_category_query, (row_id,))
     rows = cursor.fetchone()
-    quikstart.add_into_gs(-abs(int(rows[0])), rows[1])
+    date = rows[2][8:10]
+    quikstart.add_into_gs(-abs(int(rows[0])), rows[1], int(date))
     db.delete("expenses", row_id)
 
 
@@ -129,7 +129,8 @@ def change_expense(row_id: int, new_value: int) -> None:
     """Изменяет запись расхода по его идентификатору"""
     cursor.execute(db.amount_and_category_query, (row_id,))
     rows = cursor.fetchone()
-    quikstart.add_into_gs(new_value-rows[0], rows[1])
+    date = rows[2][8:10]
+    quikstart.add_into_gs(new_value-rows[0], rows[1], int(date))
     db.change("expenses", row_id, new_value)
 
 def _get_now_datetime() -> datetime.datetime:
@@ -139,10 +140,13 @@ def _get_now_datetime() -> datetime.datetime:
     return now
 
 
-def _get_now_formated_datetime(now_datetime=_get_now_datetime()):
+def _get_now_formated_datetime(specified_date=None):
     """Возвращает сегодняшнюю дату время строкой для БД"""
-    if type(now_datetime) == str:
-        return now_datetime
+    if specified_date is None:
+        date = _get_now_datetime().strftime("%Y-%m-%d %H:%M:%S")
     else:
-        return now_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        date = (str(_get_now_datetime().year)+"-"
+                + str(specified_date) + " "
+                + _get_now_datetime().strftime("%H:%M:%S"))
+    return date
 

@@ -52,7 +52,7 @@ async def list_expenses(message: types.Message):
         f"{expense.amount} руб. на {expense.raw_text} — нажми "
         f"/del{expense.id} для удаления, /chg{expense.id} для изменения"
         for expense in last_expenses]
-    answer_message = "Последние сохранённые траты:\n\n* " + "\n\n* "\
+    answer_message = "Последние сохранённые траты:\n\n* " + "\n* "\
         .join(last_expenses_rows)
     await message.answer(answer_message)
 

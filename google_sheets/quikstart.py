@@ -19,13 +19,14 @@ SPREADSHEET_ID = os.getenv('SPREADSHEET_ID')
 service = build('sheets', 'v4', credentials=credentials)
 
 
-def previous_amount_from_gs(category_text):
-    range_sample = dateandtime.range_prepare()
+def previous_amount_from_gs(category_text, specified_date):
+    """Возвращает предидущее значение (сумма расода) из ячейки"""
+    range_sample = dateandtime.range_prepare(specified_date)
     result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID,
                                                  range=range_sample,
                                                  majorDimension='ROWS')
     if "values" not in result.execute():
-        data_for_new_day()
+        data_for_new_day(specified_date)
         current_dt = date.today()
         if int(current_dt.day) == 28 and int(current_dt.month) != 12:
             title = dateandtime.month_dict[int(current_dt.month) + 1]
@@ -39,9 +40,10 @@ def previous_amount_from_gs(category_text):
     return frd
 
 
-def add_into_gs(amount: int, category_text: str):
-    array = {"values": [dateandtime.array_prepare(amount, category_text)]}
-    range_gs = dateandtime.range_prepare()
+def add_into_gs(amount: int, category_text: str, specified_date=None):
+    """Записывает новые данные в таблицу"""
+    array = {"values": [dateandtime.array_prepare(amount, category_text, specified_date)]}
+    range_gs = dateandtime.range_prepare(specified_date)
     response = service.spreadsheets().values().update(spreadsheetId=SPREADSHEET_ID,
                                                       range=range_gs,
                                                       valueInputOption="USER_ENTERED",
@@ -49,10 +51,10 @@ def add_into_gs(amount: int, category_text: str):
     return response.execute()
 
 
-def data_for_new_day():
+def data_for_new_day(specified_date):
     """заполняет ячейки gs для корректного считывания при первой за день записи расхода"""
     array = {"values": [[0, 0, 0, 0, 0, 0, 0]]}
-    range_sample = dateandtime.range_prepare()
+    range_sample = dateandtime.range_prepare(specified_date)
     service.spreadsheets().values().update(spreadsheetId=SPREADSHEET_ID,
                                            range=range_sample,
                                            valueInputOption="USER_ENTERED",
@@ -64,6 +66,7 @@ def data_for_new_day():
 
 
 def create_new_glist(sheetid, title):
+    """Шаблон с форматом для создания нового листа"""
     requests = [
         {
             'addSheet': {
