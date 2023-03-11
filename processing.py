@@ -32,7 +32,7 @@ cursor = db.get_cursor()
 
 
 def add_expense(amount: int, category: str, expense: str, date: str):
-    quikstart.add_into_gs(amount, category, date)
+    #quikstart.add_into_gs(amount, category, date)
     db.insert("expenses", {
         "create_date": _get_now_formated_datetime(date),
         "amount": amount,

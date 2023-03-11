@@ -3,12 +3,14 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher.filters import Text
 from aiogram import types, Dispatcher
-
+import asyncio
 
 import db
 import exceptions
 import processing
 import categories
+from telegram_bot.handlers import messageControl
+
 
 
 list_of_category = categories.get_list_of_category()
@@ -47,10 +49,12 @@ async def pick_all_msg(message: types.Message, state: FSMContext):
             data['category'] = expense_1
         processing.add_expense(data['amount'], data['category'], data['comment'], data['date'])
         answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}.\n Осталось {db.get_budget()}"
-        await message.answer(answer_message)
+        msg = await message.answer(answer_message)
+        asyncio.create_task(messageControl.delete_message(msg, 5))
     except exceptions.NoSuchCategory as e:
-        await message.answer(str(e), reply_markup=kb_client)
+        msg = await message.answer(str(e), reply_markup=kb_client)
         await state.set_state(ExpensesState.waiting_for_category.state)
+        asyncio.create_task(messageControl.delete_message(msg, 10))
 
 
 # @dp.message_handler(Text(equals=list_of_category, ignore_case=True), state=ExpensesState.waiting_for_category)
@@ -60,8 +64,10 @@ async def category_choice(message: types.Message, state: FSMContext):
     categories.update_categories_json(data['comment'], data['category'])
     processing.add_expense(data['amount'], data['category'], data['comment'], data['date'])
     answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}. \n Осталось {db.get_budget()}"
-    await message.answer(answer_message)
+    msg = await message.answer(answer_message)
     await state.finish()
+    await message.delete()
+    asyncio.create_task(messageControl.delete_message(msg, 5))
 
 
 # @dp.message_handler(state="*", commands=['отмена'])

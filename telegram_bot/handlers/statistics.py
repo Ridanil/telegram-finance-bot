@@ -1,12 +1,18 @@
-from aiogram import types
-from aiogram import Dispatcher
+from aiogram import Dispatcher, Bot, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
-
 from telegram_bot.keyboards import kb_client_statistic
+from telegram_bot.handlers import messageControl
 import processing
 import db
+import os
+
+import asyncio
+
+
+bot = Bot(token=os.getenv('API_TOKEN'))
+dp = Dispatcher(bot)
 
 
 class StatisticState(StatesGroup):
@@ -17,7 +23,9 @@ class StatisticState(StatesGroup):
 async def say_hello(message: types.Message):
     """приветственное сообщение"""
     answer_message = "Бот для учета финансов. Все необходимые команды в пункте меню."
-    await message.answer(answer_message)
+    msg = await message.answer(answer_message)
+    asyncio.create_task(messageControl.delete_message(msg, 10))
+
 
 
 #@dp.message_handler(commands=['today'])
@@ -46,6 +54,7 @@ async def budget_viewing(message: types.Message):
     """Отправляет состояние бюджета"""
     answer_message = db.get_budget()
     await message.answer(answer_message)
+    asyncio.create_task(messageControl.delete_message(answer_message, 8))
 
 
 #@dp.message_handler(commands="month")

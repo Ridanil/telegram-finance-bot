@@ -20,5 +20,6 @@ statistics.register_handler_statistics(dp)
 admin.register_handler_admin(dp)
 input_data.register_handler_input_data(dp)
 
+
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
