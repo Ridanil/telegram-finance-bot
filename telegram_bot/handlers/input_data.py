@@ -66,7 +66,7 @@ async def category_choice(message: types.Message, state: FSMContext):
     answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}. \n Осталось {db.get_budget()}"
     msg = await message.answer(answer_message)
     await state.finish()
-    await message.delete()
+    await asyncio.create_task(messageControl.delete_message(message, 5))
     asyncio.create_task(messageControl.delete_message(msg, 5))
 
 
