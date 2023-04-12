@@ -13,6 +13,8 @@ def range_prepare(specified_date=None):
     current_dt = date.today()
     if specified_date is None:
         column_name = str(int(current_dt.day) + 1)
+    elif type(specified_date) == int:
+        column_name = str(specified_date)
     else:
         column_name = str(int(specified_date[0:2]) + 1)
     list_name = month_dict[int(current_dt.month)]
