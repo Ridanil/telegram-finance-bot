@@ -1,8 +1,9 @@
 from telegram_bot.keyboards import kb_client
-from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.dispatcher.filters import Text
-from aiogram import types, Dispatcher
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.filters.command import Command
+from aiogram import Dispatcher, F
+from aiogram.types import Message
 import asyncio
 
 import db
@@ -12,16 +13,15 @@ import categories
 from telegram_bot.handlers import messageControl
 
 
+list_of_category = ['еда', 'кафе', 'алкоголь', 'сладкое', 'бензин', 'бытовая химия', 'разное']
 
-list_of_category = categories.get_list_of_category()
 
-
-class ExpensesState(StatesGroup):
+class States(StatesGroup):
     waiting_for_category = State()
 
 
-#@dp.message_handler(lambda message: message.text.startswith("+"))
-async def pick_message_income(message: types.Message):
+#@dp.message(lambda message: message.text.startswith("+"))
+async def pick_message_income(message: Message):
     """Ловит сообщения начинающиеся с + и обрабатывает их как 'приход'"""
     try:
         pre_income = processing.parsing(message.text)
@@ -32,58 +32,53 @@ async def pick_message_income(message: types.Message):
         return
 
 
-#@dp.message_handler()
-async def pick_all_msg(message: types.Message, state: FSMContext):
+#@dp.message()
+async def pick_all_msg(message: Message, state: FSMContext):
     try:
         pre_expense = processing.parsing(message.text)
-        async with state.proxy() as data:
-            data['comment'] = pre_expense.message_text
-            data['amount'] = pre_expense.amount
-            data['date'] = pre_expense.date
+        await state.update_data(comment=pre_expense.message_text, amount=pre_expense.amount, date=pre_expense.date)
     except exceptions.NotCorrectMessage as e:
         await message.answer(str(e))
         return
     try:
         expense_1 = categories.get_category(pre_expense.message_text)
-        async with state.proxy() as data:
-            data['category'] = expense_1
-        processing.add_expense(data['amount'], data['category'], data['comment'], data['date'])
-        answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}.\n Осталось {db.get_budget()}"
+        await state.update_data(category=expense_1)
+        user_data = await state.get_data()
+        processing.add_expense(user_data['amount'], user_data['category'], user_data['comment'], user_data['date'])
+        answer_message = f"Добавлены траты {user_data['amount']} руб., на {user_data['comment']}.\n Осталось {db.get_budget()}"
         msg = await message.answer(answer_message)
-        asyncio.create_task(messageControl.delete_message(msg, 5))
+        await asyncio.create_task(messageControl.delete_message(msg, 5))
     except exceptions.NoSuchCategory as e:
         msg = await message.answer(str(e), reply_markup=kb_client)
-        await state.set_state(ExpensesState.waiting_for_category.state)
-        asyncio.create_task(messageControl.delete_message(msg, 10))
+        await state.set_state(States.waiting_for_category)
+        await asyncio.create_task(messageControl.delete_message(msg, 10))
 
 
-# @dp.message_handler(Text(equals=list_of_category, ignore_case=True), state=ExpensesState.waiting_for_category)
-async def category_choice(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        data['category'] = message.text
-    categories.update_categories_json(data['comment'], data['category'])
-    processing.add_expense(data['amount'], data['category'], data['comment'], data['date'])
-    answer_message = f"Добавлены траты {data['amount']} руб., на {data['comment']}. \n Осталось {db.get_budget()}"
+#@dp.message(States.waiting_for_category, F.text.in_(list_of_category))
+async def category_choice(message: Message, state: FSMContext):
+    await state.update_data(category=message.text)
+    user_data = await state.get_data()
+    categories.update_categories_json(user_data['comment'], user_data['category'])
+    processing.add_expense(user_data['amount'], user_data['category'], user_data['comment'], user_data['date'])
+    answer_message = f"Добавлены траты {user_data['amount']} руб., на {user_data['comment']}. \n Осталось {db.get_budget()}"
     msg = await message.answer(answer_message)
-    await state.finish()
     await asyncio.create_task(messageControl.delete_message(message, 5))
-    asyncio.create_task(messageControl.delete_message(msg, 5))
+    await asyncio.create_task(messageControl.delete_message(msg, 5))
+    await state.clear()
 
 
-# @dp.message_handler(state="*", commands=['отмена'])
-async def cancel_input_budget(message: types.Message, state=FSMContext):
+# @dp.message(state="*", commands=['отмена'])
+async def cancel_input_budget(message: Message, state: FSMContext):
     """Прерывает ввод"""
     current_state = await state.get_state()
     if current_state is None:
         return
-    await state.finish()
+    await state.clear()
     await message.reply("Ok")
 
 
 def register_handler_input_data(dp: Dispatcher):
-    dp.register_message_handler(pick_message_income, lambda message: message.text.startswith("+"))
-    dp.register_message_handler(pick_all_msg)
-    dp.register_message_handler(category_choice, Text(equals=list_of_category,
-                                                      ignore_case=True),
-                                state=ExpensesState.waiting_for_category)
-    dp.register_message_handler(cancel_input_budget, state='*', commands='cancel')
+    dp.message.register(pick_message_income, F.text.startswith("+"))
+    dp.message.register(category_choice, States.waiting_for_category, F.text.in_(list_of_category))
+    dp.message.register(cancel_input_budget, Command('cancel'))
+    dp.message.register(pick_all_msg)

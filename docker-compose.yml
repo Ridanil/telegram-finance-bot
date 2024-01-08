@@ -1,0 +1,8 @@
+version: "3"
+services:
+  tg_bot:
+    image: ridanil/tg_bot_latest
+    restart: always
+    volumes:
+      - /home/docker_volume/db:/home/db
+      - /home/docker_volume/categories:/home/categories

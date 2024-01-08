@@ -1,47 +1,46 @@
-from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.dispatcher import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.context import FSMContext
 from aiogram import types
 from aiogram import Dispatcher
+from aiogram.filters.command import Command
 
 
 import db
 import processing
 
 
-class BudgetState(StatesGroup):
+class States(StatesGroup):
     waiting_for_budget = State()
-
-class ChangeState(StatesGroup):
     waiting_for_new_value = State()
 
-# @dp.message_handler(commands="add_budget")
+# @dp.message(commands="add_budget")
 async def add_budget(message: types.Message, state: FSMContext):
     """Устанавливает бюджет"""
     await message.answer("Установите бюджет")
-    await state.set_state(BudgetState.waiting_for_budget.state)
+    await state.set_state(States.waiting_for_budget)
 
 
-# @dp.message_handler(state=BudgetState.waiting_for_budget.state)
+# @dp.message(state=BudgetState.waiting_for_budget.state)
 async def input_budget(message: types.Message, state: FSMContext):
-    async with state.proxy() as budget_data:
-        budget_data['budget'] = message.text
-    db.update_budget(budget_data['budget'])
-    answer_message = f"Добавлен бюджет {budget_data['budget']} руб."
+    await state.update_data(budget=message.text)
+    user_data = await state.get_data()
+    db.update_budget(user_data['budget'])
+    answer_message = f"Добавлен бюджет {user_data['budget']} руб."
     await message.answer(answer_message)
-    await state.finish()
+    await state.clear()
 
 
-# @dp.message_handler(state="*", commands=['отмена'])
-async def cancel_input(message: types.Message, state=FSMContext):
+# @dp.message(state="*", commands=['отмена'])
+async def cancel_input(message: types.Message, state: FSMContext):
     """Прерывает ввод"""
     current_state = await state.get_state()
     if current_state is None:
         return
-    await state.finish()
+    await state.clear()
     await message.reply("Ok")
 
 
-# @dp.message_handler(commands=['expenses'])
+# @dp.message(commands=['expenses'])
 async def list_expenses(message: types.Message):
     """Отправляет последние несколько записей о расходах"""
     last_expenses = processing.return_last_expenses()
@@ -64,28 +63,28 @@ async def del_expense(message: types.Message):
     await message.answer(answer_message)
 
 async def change_expense(message: types.Message, state: FSMContext):
-    """Изменяет одну запись о расходе по её идентификатору"""
-    async with state.proxy() as new_value_data:
+    """Изменяет одну запись о расходе (сумму) по её идентификатору"""
+    async with state.update_data() as new_value_data:
         new_value_data["row_id"] = int(message.text[4:])
-    await message.answer("Введите новое значение")
-    await state.set_state(ChangeState.waiting_for_new_value.state)
+    await message.answer("Введите новое значение (сумму)")
+    await state.set_state(States.waiting_for_new_value)
 
 
-# @dp.message_handler(state=ChangeState.waiting_for_new_value.state)
+# @dp.message(state=ChangeState.waiting_for_new_value.state)
 async def new_value(message: types.Message, state: FSMContext):
-    async with state.proxy() as new_value_data:
+    async with state.update_data() as new_value_data:
         new_value_data['new_amount'] = int(message.text)
     processing.change_expense(new_value_data['row_id'], new_value_data['new_amount'])
     answer_message = f"Изменения внесены."
     await message.answer(answer_message)
-    await state.finish()
+    await state.clear()
 
 
 def register_handler_admin(dp: Dispatcher):
-    dp.register_message_handler(add_budget, commands='add_budget')
-    dp.register_message_handler(input_budget, state=BudgetState.waiting_for_budget.state)
-    dp.register_message_handler(cancel_input, state='*', commands='cancel')
-    dp.register_message_handler(list_expenses, commands=['expenses'])
-    dp.register_message_handler(del_expense, lambda message: message.text.startswith('/del'))
-    dp.register_message_handler(change_expense, lambda message: message.text.startswith('/chg'))
-    dp.register_message_handler(new_value, state=ChangeState.waiting_for_new_value.state)
+    dp.message.register(add_budget, Command('add_budget'))
+    dp.message.register(input_budget, States.waiting_for_budget)
+    dp.message.register(cancel_input, Command('cancel'))
+    dp.message.register(list_expenses, Command('expenses'))
+    dp.message.register(del_expense, lambda message: message.text.startswith('/del'))
+    dp.message.register(change_expense, lambda message: message.text.startswith('/chg'))
+    dp.message.register(new_value, States.waiting_for_new_value)
