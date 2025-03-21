@@ -13,7 +13,7 @@ import categories
 from telegram_bot.handlers import messageControl
 
 
-list_of_category = ['еда', 'кафе', 'алкоголь', 'сладкое', 'бензин', 'бытовая химия', 'разное']
+list_of_category: list = ['еда', 'кафе', 'алкоголь', 'сладкое', 'бензин', 'бытовая химия', 'разное']
 
 
 class States(StatesGroup):

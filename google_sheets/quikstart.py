@@ -2,6 +2,7 @@ import os.path
 from datetime import date
 from google_sheets import dateandtime
 from dotenv import load_dotenv, find_dotenv
+from typing import Optional
 
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -20,7 +21,7 @@ service = build('sheets', 'v4', credentials=credentials)
 
 
 def previous_amount_from_gs(category_text, specified_date):
-    """Возвращает предидущее значение (сумма расода) из ячейки"""
+    """Возвращает пред идущее значение (сумма расхода) из ячейки"""
     range_sample = dateandtime.range_prepare(specified_date)
     result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID,
                                                  range=range_sample,
@@ -40,7 +41,7 @@ def previous_amount_from_gs(category_text, specified_date):
     return frd
 
 
-def add_into_gs(amount: int, category_text: str, specified_date=None):
+def add_into_gs(amount: int, category_text: str, specified_date: Optional[str]=None):
     """Записывает новые данные в таблицу"""
     array = {"values": [dateandtime.array_prepare(amount, category_text, specified_date)]}
     range_gs = dateandtime.range_prepare(specified_date)
@@ -52,7 +53,7 @@ def add_into_gs(amount: int, category_text: str, specified_date=None):
 
 
 def data_for_new_day(specified_date):
-    """заполняет ячейки gs для корректного считывания при первой за день записи расхода"""
+    """Заполняет ячейки gs для корректного считывания при первой за день записи расхода"""
     array = {"values": [[0, 0, 0, 0, 0, 0, 0]]}
     range_sample = dateandtime.range_prepare(specified_date)
     service.spreadsheets().values().update(spreadsheetId=SPREADSHEET_ID,
@@ -65,7 +66,7 @@ def data_for_new_day(specified_date):
     return result
 
 
-def create_new_glist(sheetid, title):
+def create_new_glist(sheetid:int, title: str):
     """Шаблон с форматом для создания нового листа"""
     requests = [
         {
@@ -195,4 +196,3 @@ def create_new_glist(sheetid, title):
         spreadsheetId=SPREADSHEET_ID,
         body=body2).execute()
     pass
-

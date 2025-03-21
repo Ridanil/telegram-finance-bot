@@ -9,7 +9,7 @@ month_dict = {1: "Январь", 2: "Февраль", 3: "Март",
 
 
 def range_prepare(specified_date=None):
-    """Указывае лист и диапазон ячеек в соответствии с текущим днем и месяцем"""
+    """Указывает лист и диапазон ячеек в соответствии с текущим днем и месяцем"""
     current_dt = date.today()
     list_name = month_dict[int(current_dt.month)]
     if specified_date is None:

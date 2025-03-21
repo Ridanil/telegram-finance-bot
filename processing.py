@@ -9,7 +9,7 @@ import exceptions
 
 
 class Message(NamedTuple):
-    "Распаршенное сообщение"
+    "Распарсенное сообщение"
     amount: int
     message_text: str
     date: Optional[str]
@@ -31,7 +31,8 @@ class Earn(NamedTuple):
 cursor = db.get_cursor()
 
 
-def add_expense(amount: int, category: str, expense: str, date: str):
+def add_expense(amount: int, category: str, expense: str, date: str) -> Expense:
+    """Добавляет новый расход"""
     quikstart.add_into_gs(amount, category, date)
     db.insert("expenses", {
         "create_date": _get_now_formated_datetime(date),
@@ -43,7 +44,7 @@ def add_expense(amount: int, category: str, expense: str, date: str):
     return Expense(id=None, amount=amount, category_name=category, raw_text=None)
 
 
-def add_income(amount: int, message_text: str):
+def add_income(amount: int, message_text: str) -> None:
     """Добавляет новый приход(ЗП, пенсия и т.д)"""
     #add_in_to_gs = quikstart.add_into_gs(amount, category) #TODO подумать о настройке в дальнейшем
     db.insert("income", {
@@ -140,7 +141,7 @@ def _get_now_datetime() -> datetime.datetime:
     return now
 
 
-def _get_now_formated_datetime(specified_date=None):
+def _get_now_formated_datetime(specified_date=None) -> str:
     """Возвращает сегодняшнюю дату время строкой для БД"""
     if specified_date is None:
         date = _get_now_datetime().strftime("%Y-%m-%d %H:%M:%S")
