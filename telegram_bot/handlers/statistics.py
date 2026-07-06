@@ -12,7 +12,6 @@ import os
 import asyncio
 
 
-bot = Bot(token=os.getenv('API_TOKEN'))
 #dp = Dispatcher()
 
 

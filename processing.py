@@ -3,7 +3,7 @@ import datetime
 import pytz
 import re
 
-from google_sheets import quikstart
+#from google_sheets import quikstart
 import db
 import exceptions
 
@@ -33,7 +33,7 @@ cursor = db.get_cursor()
 
 def add_expense(amount: int, category: str, expense: str, date: str) -> Expense:
     """Добавляет новый расход"""
-    quikstart.add_into_gs(amount, category, date)
+   #quikstart.add_into_gs(amount, category, date)
     db.insert("expenses", {
         "create_date": _get_now_formated_datetime(date),
         "amount": amount,

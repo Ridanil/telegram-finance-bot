@@ -9,9 +9,14 @@ from middlewares import CheckUserId
 logging.basicConfig(level=logging.INFO)
 
 load_dotenv(find_dotenv())
+
+API_TOKEN = os.getenv('API_TOKEN')
+if not API_TOKEN:
+    raise ValueError("API_TOKEN not found in .env file!")
+
 access_id = list(map(int, (os.getenv('ACCESS_ID')).split(",")))
 
-bot = Bot(token=os.getenv('API_TOKEN'))
+bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 dp.message.middleware(CheckUserId(access_id))
 
