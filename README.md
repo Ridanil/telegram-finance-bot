@@ -12,7 +12,7 @@ Telegram Finance Bot — это бот для Telegram, предназначен
 ```bash
 pip install -r requirements.txt
 ```
-2. Настройте окружение, следуя инструкциям в файле `README.env`.
+2. Настройте окружение, следуя инструкциям в файле `example.env`.
 3. Запустите бота:
 ```bash
 python main.py
