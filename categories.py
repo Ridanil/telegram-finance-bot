@@ -25,7 +25,8 @@ def update_categories_json(text_for_prepare, ask_category): # TODO what it must 
     она вводится c помощью кнопки а расход добавляется в алиасы"""
     categories = load_categories()
     try:
-        categories[ask_category].append(text_for_prepare)
+       categories[ask_category].append(text_for_prepare)
+       save_categories(categories)
     except KeyError:
         print(f"The {ask_category} is not a category") 
     return ask_category
