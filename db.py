@@ -1,71 +1,46 @@
-from typing import Dict
+# db.py (новая версия)
+from typing import Dict, Any, List, Optional
+from database import db
 
+def insert(table: str, column_values: Dict[str, Any]):
+    """Вставляет данные в таблицу"""
+    db.insert(table, column_values)
 
-import sqlite3
+def get_budget() -> int:
+    """Возвращает текущий бюджет"""
+    return db.get_budget()
 
-conn = sqlite3.connect("db/createdb.db")
-cursor = conn.cursor()
+def get_average(today: int, first_day_of_month: str, category: str) -> float:
+    """Возвращает среднее значение расходов"""
+    return db.get_average(today, first_day_of_month, category)
 
+def update_budget(value: int):
+    """Обновляет бюджет"""
+    db.update_budget(value)
 
-def insert(table: str, column_values: Dict):
-	columns = ', '.join(column_values.keys())
-	values = [tuple(column_values.values())]
-	placeholders = ', '.join('?'* len(column_values.keys()))
-	cursor.executemany(
-		f"INSERT INTO {table}"
-		f"({columns})"
-		f"VALUES ({placeholders})",
-		values)
-	conn.commit()
+def delete(table: str, row_id: int):
+    """Удаляет запись"""
+    db.delete(table, row_id)
 
-
-def get_budget():
-	cursor.execute(f"SELECT sumary FROM budget")
-	budget = cursor.fetchone()
-	conn.commit()
-	return budget[0]
-
-
-def get_averege(today, first_day_of_month, category):
-	cursor.execute("""SELECT sum(amount)/? FROM expenses WHERE date(create_date) >= ?
-					AND (category_name LIKE ?)""",(today, first_day_of_month, category))
-	avg = cursor.fetchone()
-	conn.commit()
-	return avg[0]
-
-
-def update_budget(values: int):
-	cursor.execute(f"UPDATE budget SET sumary = {values}")
-	conn.commit()
-
+def change(table: str, row_id: int, new_value: int):
+    """Изменяет сумму в записи"""
+    db.change(table, row_id, new_value)
 
 def get_cursor():
-	return cursor
+    """Возвращает курсор - для обратной совместимости"""
+    db.connect()
+    return db.connection.cursor()
 
-
-def delete(table: str, row_id: int) -> None:
-	row_id = int(row_id)
-	cursor.execute(f"delete from {table} where id={row_id}")
-	conn.commit()
-
-
-def change(table: str, row_id: int, new_value: int) -> None:
-	row_id = int(row_id)
-	new_value = int(new_value)
-	cursor.execute(f"UPDATE {table} SET amount = {new_value} where id={row_id}")
-	conn.commit()
-
-
-month_statistic_query = """SELECT sum(amount) FROM expenses
-						WHERE date(create_date) >= ?
-						AND (category_name LIKE ?)"""
-
+# SQL запросы
+month_statistic_query = """SELECT COALESCE(SUM(amount), 0) FROM expenses
+                        WHERE date(create_date) >= %s
+                        AND category_name LIKE %s"""
 
 month_earn_query = """SELECT amount, raw_text FROM income
-						WHERE date(create_date) >= ?"""
-
+                    WHERE date(create_date) >= %s"""
 
 last_expenses_query = """SELECT id, amount, raw_text FROM expenses
-						ORDER BY create_date DESC limit 10"""
+                        ORDER BY create_date DESC LIMIT 10"""
 
-amount_and_category_query = """SELECT amount, category_name, create_date FROM expenses WHERE id = ?"""
+amount_and_category_query = """SELECT amount, category_name, create_date 
+                            FROM expenses WHERE id = %s"""

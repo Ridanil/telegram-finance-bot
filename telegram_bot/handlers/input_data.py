@@ -44,7 +44,7 @@ async def pick_all_msg(message: Message, state: FSMContext):
         expense_1 = categories.get_category(pre_expense.message_text)
         await state.update_data(category=expense_1)
         user_data = await state.get_data()
-        processing.add_expense(user_data['amount'], user_data['category'], user_data['comment'], user_data['date'])
+        await processing.add_expense(user_data['amount'], user_data['category'], user_data['comment'], user_data['date'])
         answer_message = f"Добавлены траты {user_data['amount']} руб., на {user_data['comment']}.\n Осталось {db.get_budget()}"
         msg = await message.answer(answer_message)
         await asyncio.create_task(messageControl.delete_message(msg, 5))
@@ -59,7 +59,7 @@ async def category_choice(message: Message, state: FSMContext):
     await state.update_data(category=message.text)
     user_data = await state.get_data()
     categories.update_categories_json(user_data['comment'], user_data['category'])
-    processing.add_expense(user_data['amount'], user_data['category'], user_data['comment'], user_data['date'])
+    await processing.add_expense(user_data['amount'], user_data['category'], user_data['comment'], user_data['date'])
     answer_message = f"Добавлены траты {user_data['amount']} руб., на {user_data['comment']}. \n Осталось {db.get_budget()}"
     msg = await message.answer(answer_message)
     await asyncio.create_task(messageControl.delete_message(message, 5))
