@@ -2,5 +2,6 @@
 .idea
 google_sheets/credentials.json
 /env
+/venv
 /db
 /__pycache__
