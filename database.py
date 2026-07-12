@@ -5,6 +5,9 @@ from contextlib import asynccontextmanager
 from typing import Dict, Any, List, Tuple, Optional
 from asyncpg import Record
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
