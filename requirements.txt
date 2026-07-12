@@ -12,7 +12,6 @@ idna==3.18
 magic-filter==1.0.12
 multidict==6.7.1
 propcache==0.5.2
-psycopg2-binary==2.9.12
 pydantic==2.13.4
 pydantic_core==2.46.4
 python-dotenv==1.2.2
