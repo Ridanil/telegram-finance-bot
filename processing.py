@@ -30,7 +30,7 @@ async def add_expense(amount: int, category: str, expense: str, date: str) -> Ex
         "raw_text": expense
     })
     current_budget = await db.get_budget()
-    db.update_budget(db.get_budget() - amount)
+    db.update_budget( await db.get_budget() - amount)
     return Expense(id=None, amount=amount, category_name=category, raw_text=None)
 
 def add_income(amount: int, message_text: str) -> None:
