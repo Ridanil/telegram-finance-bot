@@ -15,7 +15,7 @@ pip install -r requirements.txt
 2. Настройте окружение, следуя инструкциям в файле `example.env`.
 3. Запустите бота:
 ```bash
-python main.py
+python tg_bot.py
 ```
 
 ## Структура проекта
