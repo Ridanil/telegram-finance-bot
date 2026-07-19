@@ -1,10 +1,11 @@
 # processing.py (обновленная версия)
 from typing import NamedTuple, Optional
-import datetime
+from datetime import datetime, timezone
 import pytz
 import re
 import db
 import exceptions
+import database
 
 class Message(NamedTuple):
     amount: int
@@ -23,24 +24,25 @@ class Earn(NamedTuple):
 
 async def add_expense(amount: int, category: str, expense: str, date: str) -> Expense:
     """Добавляет новый расход"""
-    db.insert("expenses", {
-        "create_date": _get_now_formated_datetime(date),
+    await db.insert("expenses", {
+        "create_date": _get_datetime(date),
         "amount": amount,
         "category_name": category,
         "raw_text": expense
     })
     current_budget = await db.get_budget()
-    db.update_budget( await db.get_budget() - amount)
+    await db.update_budget(current_budget - amount)
     return Expense(id=None, amount=amount, category_name=category, raw_text=None)
 
-def add_income(amount: int, message_text: str) -> None:
+async def add_income(amount: int, message_text: str) -> None:
     """Добавляет новый приход"""
-    db.insert("income", {
-        "create_date": _get_now_formated_datetime(),
+    await db.insert("income", {
+        "create_date": _get_datetime(),
         "amount": amount,
         "raw_text": message_text
     })
-    db.update_budget(db.get_budget() + amount)
+    budget = await db.get_budget()  # Добавить await
+    await db.update_budget(budget + amount)
 
 def parsing(raw_message: str) -> Message:
     """Парсит входящее сообщение"""
@@ -94,43 +96,54 @@ def get_earn_statistic():
     earn = [Earn(amount=res[0], category_name=res[1]) for res in result]
     return earn
 
-def return_last_expenses():
+async def return_last_expenses():
     """Возвращает 10 последних записей"""
-    result = db.execute_query(db.last_expenses_query)
-    last_expenses = [Expense(id=row[0], amount=row[1],
-                            raw_text=row[2], category_name=None) for row in result]
+    result = await db.execute_query(db.last_expenses_query)
+    last_expenses = []
+    for row in result:
+        expense = Expense(
+            id=row[0],  # или row['id']
+            amount=row[1],  # или row['amount']
+            category_name=None,  # нет в запросе
+            raw_text=row[2]  # или row['raw_text']
+        )
+        last_expenses.append(expense)
     return last_expenses
 
-def delete_expense(row_id: int) -> None:
+async def delete_expense(row_id: int) -> None:
     """Удаляет сообщение по его идентификатору"""
-    result = db.execute_query(db.amount_and_category_query, (row_id,))
+    result = await db.execute_query(db.amount_and_category_query, (row_id,))
     if result:
         rows = result[0]
         date = str(rows[2])[8:10]
         # quikstart.add_into_gs(-abs(int(rows[0])), rows[1], int(date)) # Раскомментировать при необходимости
-    db.delete("expenses", row_id)
+    await db.delete("expenses", row_id)
 
-def change_expense(row_id: int, new_value: int) -> None:
+async def change_expense(row_id: int, new_value: int) -> None:
     """Изменяет запись расхода по его идентификатору"""
-    result = db.execute_query(db.amount_and_category_query, (row_id,))
+    result = await db.execute_query(db.amount_and_category_query, (row_id,))
     if result:
         rows = result[0]
         date = str(rows[2])[8:10]
         # quikstart.add_into_gs(new_value-rows[0], rows[1], int(date)) # Раскомментировать при необходимости
-    db.change("expenses", row_id, new_value)
+    await db.change("expenses", row_id, new_value)
 
-def _get_now_datetime() -> datetime.datetime:
-    """Возвращает сегодняшний datetime с учетом временной зоны"""
+
+def _get_now_datetime() -> datetime:
+    """Возвращает текущее время без временной зоны"""
     tz = pytz.timezone("Europe/Moscow")
-    now = datetime.datetime.now(tz)
-    return now
+    now = datetime.now(tz)
+    return now.replace(tzinfo=None)
 
-def _get_now_formated_datetime(specified_date=None) -> str:
-    """Возвращает форматированную дату для БД"""
+
+def _get_datetime(specified_date: str = None) -> datetime:
+    """Возвращает datetime для расхода"""
+    now = _get_now_datetime()
     if specified_date is None:
-        date = _get_now_datetime().strftime("%Y-%m-%d %H:%M:%S")
-    else:
-        date = (str(_get_now_datetime().year) + "-" +
-                str(specified_date) + " " +
-                _get_now_datetime().strftime("%H:%M:%S"))
-    return date
+        return now
+    # Парсим "06-31" как день-месяц
+    month, day = map(int, specified_date.split('-'))
+    try:
+        return now.replace(day=day, month=month, hour=0, minute=0, second=0)
+    except ValueError:
+        return now  # если дата некорректна

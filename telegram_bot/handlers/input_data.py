@@ -25,7 +25,7 @@ async def pick_message_income(message: Message):
     """Ловит сообщения начинающиеся с + и обрабатывает их как 'приход'"""
     try:
         pre_income = processing.parsing(message.text)
-        processing.add_income(pre_income.amount, pre_income.message_text)
+        await processing.add_income(pre_income.amount, pre_income.message_text)
         await message.answer(f"Добавлено {pre_income.amount} {pre_income.message_text}")
     except exceptions.NotCorrectMessage as e:
         await message.answer(str(e))
@@ -45,7 +45,7 @@ async def pick_all_msg(message: Message, state: FSMContext):
         await state.update_data(category=expense_1)
         user_data = await state.get_data()
         await processing.add_expense(user_data['amount'], user_data['category'], user_data['comment'], user_data['date'])
-        answer_message = f"Добавлены траты {user_data['amount']} руб., на {user_data['comment']}.\n Осталось {db.get_budget()}"
+        answer_message = f"Добавлены траты {user_data['amount']} руб., на {user_data['comment']}.\n Осталось {await db.get_budget()} руб."
         msg = await message.answer(answer_message)
         await asyncio.create_task(messageControl.delete_message(msg, 5))
     except exceptions.NoSuchCategory as e:
@@ -60,7 +60,7 @@ async def category_choice(message: Message, state: FSMContext):
     user_data = await state.get_data()
     categories.update_categories_json(user_data['comment'], user_data['category'])
     await processing.add_expense(user_data['amount'], user_data['category'], user_data['comment'], user_data['date'])
-    answer_message = f"Добавлены траты {user_data['amount']} руб., на {user_data['comment']}. \n Осталось {db.get_budget()}"
+    answer_message = f"Добавлены траты {user_data['amount']} руб., на {user_data['comment']}. \n Осталось {await db.get_budget()} руб."
     msg = await message.answer(answer_message)
     await asyncio.create_task(messageControl.delete_message(message, 5))
     await asyncio.create_task(messageControl.delete_message(msg, 5))

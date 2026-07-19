@@ -64,13 +64,14 @@ class Database:
     async def get_cursor(self, commit: bool = True):
         """Контекстный менеджер для работы с транзакциями"""
         async with self.get_connection() as conn:
-            try:
-                yield conn
-                if commit:
-                    await conn.commit()
-            except Exception as e:
-                await conn.rollback()
-                raise e
+            # Используем транзакцию
+            async with conn.transaction():
+                try:
+                    yield conn
+                    if commit:
+                        pass
+                except Exception as e:
+                    raise e
 
     async def insert(self, table: str, column_values: Dict[str, Any]) -> int:
         """Вставка данных и возврат ID"""
