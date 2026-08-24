@@ -5,3 +5,4 @@ google_sheets/credentials.json
 /venv
 /db
 /__pycache__
+.vercel

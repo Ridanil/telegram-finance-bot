@@ -21,12 +21,10 @@ async def say_hello(message: types.Message):
     msg = await message.answer(answer_message)
     await asyncio.create_task(messageControl.delete_message(msg, 10))
 
-
 async def today_statistics(message: types.Message):
     """Отправляет сегодняшнюю статистику трат"""
     answer_message = processing.get_today_statistics()
     await message.answer(answer_message)
-
 
 async def month_earn(message: types.Message):
     last_expenses = processing.get_earn_statistic()
@@ -40,7 +38,6 @@ async def month_earn(message: types.Message):
         .join(last_expenses_rows)
     await message.answer(answer_message)
 
-
 async def budget_viewing(message: types.Message):
     """Отправляет состояние бюджета"""
     answer_message = await db.get_budget()
@@ -48,18 +45,15 @@ async def budget_viewing(message: types.Message):
     await asyncio.create_task(messageControl.delete_message(msg, 8))
     await asyncio.create_task(messageControl.delete_message(message, 3))
 
-
 async def start_month_statistic(message: types.Message, state: FSMContext):
     await message.answer("Какую категорию посмотрим?", reply_markup=kb_client_statistic)
     await state.set_state(States.wait_category_statistic)
-
 
 async def month_statistics(message: types.Message, state: FSMContext):
     await state.update_data(category=message.text)
     user_data = await state.get_data()
     await message.answer(processing.get_month_statistic(user_data['category']))
     await state.clear()
-
 
 async def cancel_input_category(message: types.Message, state: FSMContext):
     """Прерывает ввод категории"""
@@ -70,7 +64,7 @@ async def cancel_input_category(message: types.Message, state: FSMContext):
     await message.reply("Ok")
 
 def register_handler_statistics(dp: Dispatcher):
-    dp.message.register(say_hello, Command('start'))
+    #dp.message.register(say_hello, Command('start'))
     dp.message.register(today_statistics, Command('today'))
     dp.message.register(month_earn, Command('earn'))
     dp.message.register(budget_viewing, Command('budget'))
