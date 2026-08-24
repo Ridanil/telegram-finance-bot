@@ -1,26 +1,34 @@
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram import types
-from aiogram import Dispatcher
-from aiogram.filters.command import Command
+from aiogram import Dispatcher, F
+from aiogram.filters import Command
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
+from dotenv import load_dotenv
 
-
+import os
 import db
 import processing
 
+load_dotenv()
+
+VERCEL_URL = os.getenv("VERCEL_URL")  # без слеша в конце
 
 class States(StatesGroup):
     waiting_for_budget = State()
     waiting_for_new_value = State()
 
-# @dp.message(commands="add_budget")
+
+async def start(message: types.Message):
+    btn = KeyboardButton(text="📷 Сканировать QR", web_app=WebAppInfo(url=VERCEL_URL))
+    keyboard = ReplyKeyboardMarkup(keyboard=[[btn]], resize_keyboard=True)
+    await message.answer("Нажми кнопку и наведи камеру на QR-код чека", reply_markup=keyboard)
+
 async def add_budget(message: types.Message, state: FSMContext):
     """Устанавливает бюджет"""
     await message.answer("Установите бюджет")
     await state.set_state(States.waiting_for_budget)
 
-
-# @dp.message(state=BudgetState.waiting_for_budget.state)
 async def input_budget(message: types.Message, state: FSMContext):
     await state.update_data(budget=message.text)
     user_data = await state.get_data()
@@ -29,8 +37,6 @@ async def input_budget(message: types.Message, state: FSMContext):
     await message.answer(answer_message)
     await state.clear()
 
-
-# @dp.message(state="*", commands=['отмена'])
 async def cancel_input(message: types.Message, state: FSMContext):
     """Прерывает ввод"""
     current_state = await state.get_state()
@@ -39,8 +45,6 @@ async def cancel_input(message: types.Message, state: FSMContext):
     await state.clear()
     await message.reply("Ok")
 
-
-# @dp.message(commands=['expenses'])
 async def list_expenses(message: types.Message):
     """Отправляет последние несколько записей о расходах"""
     last_expenses = await processing.return_last_expenses()
@@ -69,8 +73,6 @@ async def change_expense(message: types.Message, state: FSMContext):
     await message.answer("Введите новое значение (сумму)")
     await state.set_state(States.waiting_for_new_value)
 
-
-# @dp.message(state=ChangeState.waiting_for_new_value.state)
 async def new_value(message: types.Message, state: FSMContext):
     data = await state.get_data()
     # Получаем сохраненные данные
@@ -82,10 +84,11 @@ async def new_value(message: types.Message, state: FSMContext):
 
 
 def register_handler_admin(dp: Dispatcher):
+    dp.message.register(start, Command("start"))
     dp.message.register(add_budget, Command('add_budget'))
     dp.message.register(input_budget, States.waiting_for_budget)
     dp.message.register(cancel_input, Command('cancel'))
     dp.message.register(list_expenses, Command('expenses'))
-    dp.message.register(del_expense, lambda message: message.text.startswith('/del'))
-    dp.message.register(change_expense, lambda message: message.text.startswith('/chg'))
+    dp.message.register(del_expense, F.text, lambda msg: msg.text.startswith('/del'))
+    dp.message.register(change_expense, F.text, lambda msg: msg.text.startswith('/chg'))
     dp.message.register(new_value, States.waiting_for_new_value)

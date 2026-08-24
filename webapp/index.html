@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+        <style>
+            body { margin: 0; padding: 0; }
+            #reader { width: 100vw; height: 100vh; }
+        </style>
+    </head>
+    <body>
+        <div id="reader"></div>
+        <script>
+            // Создаем экземпляр сканера
+            const html5QrCode = new Html5QrcodeScanner(
+                "reader",
+                {
+                    fps: 10,
+                    qrbox: { width: 150, height: 150 },
+                    aspectRatio: 1.0
+                },
+                false // verbose - показывать ли отладочную информацию
+            );
+
+            // Функция успешного сканирования
+            const onScanSuccess = (decodedText, decodedResult) => {
+                // Останавливаем сканирование
+                html5QrCode.clear();
+
+                // Отправляем данные в Telegram
+                Telegram.WebApp.sendData(decodedText);
+                Telegram.WebApp.close();
+            };
+
+            // Функция ошибки сканирования (опционально)
+            const onScanError = (errorMessage) => {
+                // Игнорируем ошибки, так как они могут быть частыми
+                // console.warn(errorMessage);
+            };
+
+            // Запускаем сканер
+            html5QrCode.render(onScanSuccess, onScanError);
+        </script>
+    </body>
+</html>

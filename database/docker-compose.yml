@@ -1,13 +1,10 @@
-# docker-compose.yml
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15
     environment:
       POSTGRES_DB: budget_bot
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: установить_пароль
+      POSTGRES_PASSWORD: 123123123
     ports:
       - "5432:5432"
     volumes:

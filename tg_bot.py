@@ -10,9 +10,9 @@ logging.basicConfig(level=logging.INFO)
 
 load_dotenv(find_dotenv())
 
-API_TOKEN = os.getenv('API_TOKEN')
+API_TOKEN = os.getenv('BOT_TOKEN')
 if not API_TOKEN:
-    raise ValueError("API_TOKEN not found in .env file!")
+    raise ValueError("BOT_TOKEN not found in .env file!")
 
 access_id = list(map(int, (os.getenv('ACCESS_ID')).split(",")))
 

@@ -23,7 +23,3 @@ kb_client_statistic = ReplyKeyboardMarkup(
     input_field_placeholder="Выберите категорию")
 
 
-# kb_client.add('еда', 'кафе', 'алкоголь', 'сладкое', 'бензин', 'бытовая химия', 'разное')
-
-# kb_client_statistic.add('еда', 'кафе', 'алкоголь', 'сладкое', 'бензин', 'бытовая химия', 'разное')
-
